@@ -1,4 +1,4 @@
-FROM ghcr.io/nousresearch/hermes-agent:latest
+FROM docker.io/nousresearch/hermes-agent:latest
 
 # Copia el script keepalive
 COPY http-keepalive.sh /http-keepalive.sh
