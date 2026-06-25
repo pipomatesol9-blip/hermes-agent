@@ -1,8 +1,13 @@
 FROM ghcr.io/nousresearch/hermes-agent:latest
 
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Copia el script keepalive
+COPY http-keepalive.sh /http-keepalive.sh
+RUN chmod +x /http-keepalive.sh
 
-EXPOSE 8080
+# Registra el keepalive como servicio s6
+RUN mkdir -p /etc/services.d/http-keepalive
+RUN printf '#!/bin/sh\nexec /http-keepalive.sh\n' \
+    > /etc/services.d/http-keepalive/run \
+    && chmod +x /etc/services.d/http-keepalive/run
 
-CMD ["/start.sh"]
+EXPOSE 10000
