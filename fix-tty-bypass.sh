@@ -1,45 +1,48 @@
 #!/usr/bin/with-contenv bash
 
-echo "[Fix] Forzando pre-configuración desatendida de Hermes Agent..."
+echo "[Fix] Forzando entorno TTY virtual con comando script..."
 
-# Definir el contenido del config.yaml dummy/básico para saltarse el CLI setup
-# Las variables importantes las seguirá leyendo de Render (HERMES_TELEGRAM_BOT_TOKEN, etc.)
-read -r -d '' CONFIG_CONTENT << 'EOF'
-version: "1"
+# 1. Escribir la configuración base por si acaso
+CONFIG_CONTENT="version: \"1\"
 agent:
-  name: "Hermes Agent"
-  profile: "default"
+  name: \"Hermes Agent\"
+  profile: \"default\"
 model:
-  provider: "openai"
-  name: "minimaxai/minimax-m2.7"
+  provider: \"openai\"
+  name: \"minimaxai/minimax-m2.7\"
 gateway:
   enabled: true
   autostart: true
-  platform: "telegram"
-EOF
+  platform: \"telegram\""
 
-# Inyectar el archivo en todos los directorios HOME posibles del contenedor
 PATHS=("/root/.hermes" "/opt/hermes/.hermes" "/home/hermes/.hermes")
-
 for dir in "${PATHS[@]}"; do
     mkdir -p "$dir"
     echo "$CONFIG_CONTENT" > "$dir/config.yaml"
-    chmod 755 "$dir/config.yaml"
-    echo "[Fix] Configuración escrita en $dir/config.yaml"
 done
 
-# --- PLAN B ALTERNATIVO ---
-# Si Hermes aún así intentara buscar la TTY, vamos a modificar su servicio de s6 
-# apuntando el comando directamente a ejecutar de forma explícita el modo pasarela/servidor si está disponible.
+# 2. Modificar el punto de entrada de s6 para engañar al binario
 if [ -f /etc/services.d/main-hermes/run ]; then
-    echo "[Fix] Modificando s6 run para forzar ejecución desatendida..."
-    mv /etc/services.d/main-hermes/run /etc/services.d/main-hermes/run.bak
+    echo "[Fix] Reconfigurando el inicio del servicio s6..."
     
-    cat << 'EOF' > /etc/services.d/main-hermes/run
+    # Si no lo hemos respaldado antes, lo respaldamos
+    if [ ! -f /etc/services.d/main-hermes/run.bak ]; then
+        mv /etc/services.d/main-hermes/run /etc/services.d/main-hermes/run.bak
+    fi
+    
+    # Extraemos el comando ejecutor original
+    ORIGINAL_CMD=$(tail -n 1 /etc/services.d/main-hermes/run.bak)
+    
+    # Si el original tenía un exec, removemos la palabra para manejarlo nosotros
+    ORIGINAL_CMD=$(echo "$ORIGINAL_CMD" | sed 's/^exec //')
+
+    # Creamos el nuevo run usando 'script /dev/null' que genera una TTY falsa impecable
+    cat << EOF > /etc/services.d/main-hermes/run
 #!/usr/bin/with-contenv bash
-echo "[s6] Ejecutando Hermes Agent en bucle desatendido..."
-# Ejecutamos el agente redirigiendo la entrada a un bucle infinito en background
-exec sleep infinity | /opt/hermes/bin/hermes-agent --gateway 2>&1
+echo "[s6] Ejecutando bajo pseudo-TTY controlada..."
+exec script -q -c "$ORIGINAL_CMD --gateway" /dev/null
 EOF
+
     chmod +x /etc/services.d/main-hermes/run
+    echo "[Fix] Modificación de TTY virtual completada."
 fi
