@@ -11,5 +11,10 @@ RUN printf '#!/bin/sh\nexec /http-keepalive.sh\n' \
 
 # Pre-configura Hermes antes de que arranque
 COPY config.yaml /opt/data/config.yaml
+# Copiar el script desde la raíz del repositorio hacia la ruta de s6 del contenedor
+COPY fix-tty-bypass.sh /etc/cont-init.d/00-fix-tty-bypass.sh
+
+# Asegurar permisos de ejecución dentro del contenedor
+RUN chmod +x /etc/cont-init.d/00-fix-tty-bypass.sh
 
 EXPOSE 10000
