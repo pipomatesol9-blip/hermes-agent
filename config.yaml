@@ -1,14 +1,19 @@
 version: 30
-provider: openai_compatible
-model: minimaxai/minimax-m2.7
-base_url: https://integrate.api.nvidia.com/v1
-api_key: "${OPENAI_API_KEY}"
+
+model:
+  provider: openai_compatible
+  name: minimaxai/minimax-m2.7
+  base_url: https://integrate.api.nvidia.com/v1
+  api_key: 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
+  temperature: 1.0
+  top_p: 0.95
+  max_tokens: 8192
 
 gateway:
   autostart: true
   platforms:
     telegram:
       enabled: true
-      bot_token: "${HERMES_TELEGRAM_BOT_TOKEN}"
+      bot_token: "8917655310:AAF-vvKAu-SXb8Kq7fBGT1Z3HKHRiX5k4P8"
       allowed_users:
-        - "${HERMES_TELEGRAM_ALLOWED_USERS}"
+        - "8925763918"
