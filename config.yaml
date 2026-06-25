@@ -1,0 +1,14 @@
+version: 30
+provider: openai_compatible
+model: minimaxai/minimax-m2.7
+base_url: https://integrate.api.nvidia.com/v1
+api_key: "${OPENAI_API_KEY}"
+
+gateway:
+  autostart: true
+  platforms:
+    telegram:
+      enabled: true
+      bot_token: "${HERMES_TELEGRAM_BOT_TOKEN}"
+      allowed_users:
+        - "${HERMES_TELEGRAM_ALLOWED_USERS}"
